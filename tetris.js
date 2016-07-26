@@ -49,6 +49,8 @@ class GridBox {
 // inintialize grid dimensions
 const NUM_COLS = 5;
 const NUM_ROWS = 10;
+let lockKeyPress = false;
+
 // grid and objects creator
 const createGrid = (numRows, numCols) => {
   let grid = [];
@@ -73,17 +75,37 @@ let shape = [-NUM_COLS, -NUM_COLS + 1, -2 * NUM_COLS + 1, -2 * NUM_COLS];
 
 const checkKeyPress = (shape, key) => {
   let wall = false;
-  let moveSpace = 1;
-  // for RIGHT key presses
+
+  // for RIGHT, LEFT key presses
   const checkRight = (shapeNum) => (shapeNum % NUM_COLS + 1) < NUM_COLS;
-  
+  const checkLeft = (shapeNum) => (shapeNum % NUM_COLS - 1) > 0;
+  let checkBound = checkRight;
+  let moveSpace = 1;
+
+  switch (key) {
+    case 'LEFT':
+      checkBound = checkLeft;
+      moveSpace = -1;
+      break;
+    case 'RIGHT':
+      checkBound = checkRight;
+      moveSpace = 1;
+      break;
+    default:
+      console.log('Invalid direction');
+  }
+
   // check bounds
   for (let i = 0; i < shape.length; i++) {
-    if (!checkRight(shape[i])) {
+    if (!checkBound(shape[i])) {
       wall = true;
     }
   }
-  if (!wall) {
+
+  // LOCK KEY PRESS UNTIL THIS HAS FULLY MOVED
+  // move in the correct direction
+  if (!wall && !lockKeyPress) {
+    lockKeyPress = true;
     for (let i = 0; i < shape.length; i++) {
       // can refactor shape to be  class and take care of itself
       if (gridBoxes[shape[i]])
@@ -92,9 +114,12 @@ const checkKeyPress = (shape, key) => {
       if (gridBoxes[shape[i]])
         gridBoxes[shape[i]].activate(grid);
       // can refactor to have collections
-    }    
+    }
+    lockKeyPress = false;    
   }
 }
+
+// create a settimeout for lockkeypress
 
 // tradeoffs: have to recalculate gridboxnum every time
 // refactor: have shape be grid box number, subtract by num columns every time
@@ -139,8 +164,17 @@ const step = () => {
 }
 
 step();
-checkKeyPress(shape, 'right');
+
+const testKeyPresses = () => {
+  let randNum = Math.floor(Math.random() * 2);
+  let direction = randNum ? 'RIGHT' : 'LEFT';
+  checkKeyPress(shape, direction);
+  setTimeout(testKeyPresses, Math.random()*800 + 1000);
+}
+testKeyPresses();
 // TODO: Control grid front end using logic from gridbox objects
 // e.g. when to turn on grid
 // start off w/ brute force before optimizing
+
+// LEFTOFF: MAKE SHAPE INTO AN OBJECT SO THAT IT CAN BE SAFELY ACCESSED BY DIFFERENT PARTS OF THE PROGRAM
 
