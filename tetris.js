@@ -42,7 +42,7 @@ class GridManager {
   constructor(numRows, numCols) {
     this.gridBoxes = [];
     this.gridVisual = new GridVisual(numRows, numCols);
-
+    this.keyPress = null;
     // maybe a new class that creates grid boxes
     // initialize gridboxes
     for (let rowIndex = 0; rowIndex < NUM_ROWS; rowIndex++) {
@@ -72,13 +72,21 @@ class GridManager {
     }  
   }
 
+  pressKey(key) {
+    this.keyPress = key;
+  }
+
   move(piece) {
     // here is where we will check if any key presses have been done in queue
-    if (this.moveHoriz(piece, 'RIGHT')) {
-
-    } else {
-      this.moveHoriz(piece, 'LEFT');
+    if (this.keyPress !== null) {
+      this.moveHoriz(piece, this.keyPress);
+      this.keyPress = null;
     }
+    // if (this.moveHoriz(piece, 'RIGHT')) {
+
+    // } else {
+    //   this.moveHoriz(piece, 'LEFT');
+    // }
     return piece.moveDown();
   }
 
@@ -298,77 +306,27 @@ const step = () => {
 
 step();
 
-
-
-
-
-// const checkKeyPress = (shape, key) => {
-//   let wall = false;
-
-//   // for RIGHT, LEFT key presses
-//   const checkRight = (shapeNum) => (shapeNum % NUM_COLS + 1) < NUM_COLS;
-//   const checkLeft = (shapeNum) => (shapeNum % NUM_COLS - 1) > 0;
-//   let checkBound = checkRight;
-//   let moveSpace = 1;
-
-//   switch (key) {
-//     case 'LEFT':
-//       checkBound = checkLeft;
-//       moveSpace = -1;
-//       break;
-//     case 'RIGHT':
-//       checkBound = checkRight;
-//       moveSpace = 1;
-//       break;
-//     default:
-//       console.log('Invalid direction');
-//   }
-
-//   // check bounds
-//   for (let i = 0; i < shape.length; i++) {
-//     if (!checkBound(shape[i])) {
-//       wall = true;
-//     }
-//   }
-
-//   // LOCK KEY PRESS UNTIL THIS HAS FULLY MOVED
-//   // move in the correct direction
-//   if (!wall && !lockKeyPress) {
-//     lockKeyPress = true;
-//     for (let i = 0; i < shape.length; i++) {
-//       // can refactor shape to be  class and take care of itself
-//       if (gridBoxes[shape[i]])
-//         gridBoxes[shape[i]].step(grid);
-//       shape[i] += moveSpace;
-//       if (gridBoxes[shape[i]])
-//         gridBoxes[shape[i]].activate(grid);
-//       // can refactor to have collections
-//     }
-//     lockKeyPress = false;    
-//   }
-// }
-
-
-// const testKeyPresses = () => {
-//   let randNum = Math.floor(Math.random() * 2);
-//   let direction = randNum ? 'RIGHT' : 'LEFT';
-//   checkKeyPress(shape, direction);
-//   setTimeout(testKeyPresses, Math.random()*800 + 1000);
-// }
-// testKeyPresses();
+const testKeyPresses = () => {
+  let randNum = Math.floor(Math.random() * 2);
+  let direction = randNum ? 'RIGHT' : 'LEFT';
+  gridManager.pressKey(direction);
+  setTimeout(testKeyPresses, Math.random()*800 + 1000);
+  console.log(direction);
+}
+testKeyPresses();
 // TODO: Control grid front end using logic from gridbox objects
-// e.g. when to turn on grid
-// start off w/ brute force before optimizing
 
 // (DONE) LEFTOFF: MAKE SHAPE INTO AN OBJECT SO THAT IT CAN BE SAFELY ACCESSED BY DIFFERENT PARTS OF THE PROGRAM
-// Most of the trip initial up was from col and row maths. 
+// Most of the initial trip up was from col and row maths. 
 
 // (DONE) LEFTOFF: UPDATE GRIDMANAGER STATE WHEN THE SHAPE HITS THE FLOOR, 
 // LEAVE THE BOXES 'ON' IN GRID INSTEAD OF TOGGLING 'OFF' AFTER STEP
 
-// (DONE) LEFTOFF: IMPLEMENT UNIT TESTING (INITIAL SETUPS)
+// (DONE) LEFTOFF: IMPLEMENT UNIT TESTING (INITIAL SETUPS - GRIDVISUAL)
 
+// (DONE) MOVE BOX LEFT AND RIGHT, SIMULATE RANDOM L/R KEY PRESSES
 
+// LEFTOFF: IMPLEMENT ANOTHER SHAPE AND FLOOR LOGIC
 
 
 
