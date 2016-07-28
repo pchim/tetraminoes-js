@@ -119,7 +119,7 @@ class GridVisual {
     try {
       return { row: this.getRow(index), col: this.getCol(index) };
     } catch (e) {
-      console.error('getRowCol(index): Index out of bounds ' + index + ': ' + e.message);
+      console.error('getRowCol(index): Index ' + index + ' out of bounds: ' + e.message);
       throw new RangeError(e);
     }
   }

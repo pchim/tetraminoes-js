@@ -4,6 +4,7 @@ const {GridVisual, GridManager, Piece, GridBox} = require(__dirname + '/tetris.j
 describe('Tetris', function() {
   const NUM_ROWS = 10;
   const NUM_COLS = 5;
+  const shape = [0, 1, 5, 6];
   const gridVisual = new GridVisual(NUM_ROWS, NUM_COLS);
 
   describe('Grid visual matrix', function() {
@@ -28,8 +29,33 @@ describe('Tetris', function() {
       it('should throw an error for illegal indices', function() {
         const OUT_OF_BOUNDS_NUM = NUM_ROWS * NUM_COLS;
         expect(() => gridVisual.getRowCol(OUT_OF_BOUNDS_NUM)).to.throw(Error);      
-      })
+      });
     });
 
+    describe('#activate(shape)', function() {
+      it('should turn display of a single grid space to \'on\'', function() {
+        gridVisual.activate(shape);
+        let { row, col } = gridVisual.getRowCol(shape[3]);
+        expect(gridVisual.getGrid()[row][col]).to.equal('-');
+      });
+      it('should turn off after every step()', function() {
+        gridVisual.step();
+        let { row, col } = gridVisual.getRowCol(shape[3]);
+        expect(gridVisual.getGrid()[row][col]).to.equal('0');
+      });
+    });
+
+    describe('#floorPiece(shape)', function() {
+      it('should turn display of a single grid space to \'on\'', function() {
+        gridVisual.floorPiece(shape);
+        let { row, col } = gridVisual.getRowCol(shape[3]);
+        expect(gridVisual.getGrid()[row][col]).to.equal('-');
+      });
+      it('should stay on after every step()', function() {
+        gridVisual.step();
+        let { row, col } = gridVisual.getRowCol(shape[3]);
+        expect(gridVisual.getGrid()[row][col]).to.equal('-');
+      });
+    });
   });
 });
