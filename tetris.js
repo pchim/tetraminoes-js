@@ -4,9 +4,6 @@ class GridBox {
     this.col = coordinates.col;
     this.row = coordinates.row;
     this.on = false;
-    this.active = false;
-    this.floor = false;
-    this.display = '0';
   }
 
   updateGrid(grid) {
@@ -27,13 +24,7 @@ class GridBox {
   }
 
   toggle(state) {
-    if (state) {
-      this.on = true;
-      this.display = '-';
-    } else {
-      this.on = false;
-      this.display = '0';
-    }
+    this.on = state;
   }
 
   step(grid) {
@@ -46,9 +37,11 @@ class GridBox {
   }
 }
 
+// GridManager model updates GridVisual view, piece is a state of gridmanager
 class GridManager {
-  constructor(numRows, numCols) {
+  constructor(numRows, numCols, gridVisual) {
     this.gridBoxes = [];
+    this.gridVisual = gridVisual;
     for (let rowIndex = 0; rowIndex < NUM_ROWS; rowIndex++) {
       let row = [];
       for (let colIndex = 0; colIndex < NUM_COLS; colIndex++) {
@@ -59,12 +52,29 @@ class GridManager {
     }    
   }
 
+  activate(shape) {
+    this.gridVisual.activate(shape);
+  }
+
   floor(shape) {
+    this.floorPiece(shape);
+    this.gridVisual.floorPiece(shape);
+  }
+
+  floorPiece(shape) {
     for (let i = 0; i < shape.length; i++) {
       if (shape[i] >= 0) {
         this.gridBoxes[shape[i]].touchFloor(true);
       }
     }  
+  }
+
+  move(piece) {
+    return piece.moveDown();
+  }
+
+  step() {
+    this.gridVisual.step();
   }
 }
 
@@ -116,21 +126,25 @@ class GridVisual {
     this.numRows = numRows;
     this.numCols = numCols;
     this.activeSquares = [];
+    this.floorTouched = false;
+    this.coordinates = [];
+    // initialize grid
     for (let rowIndex = 0; rowIndex < this.numRows; rowIndex++) {
       let row = [];
       for (let colIndex = 0; colIndex < this.numCols; colIndex++) {
         row.push(this.displayOff);
+        this.coordinates.push({col: colIndex, row: rowIndex});
       }
       this.grid.push(row);
     }   
   }
 
   getRow(index) {
-    return Math.floor(index / this.numCols);
+    return this.coordinates[index].row; // Math.floor(index / this.numCols);
   }
 
   getCol(index) {
-    return (index % this.numCols);
+    return this.coordinates[index].col; // (index % this.numCols);
   }
 
   toggleSquare(rowNum, colNum, state) {
@@ -150,12 +164,20 @@ class GridVisual {
     } 
   }
 
+  floorPiece(shape) {
+    this.activate(shape);
+    this.floorTouched = true;
+  }
+
   step() {
     for (let i = 0; i < this.activeSquares.length; i++) {
       // this is recalculating every time, can refactor to use a hash of coordinates
       let rowNum = this.getRow(this.activeSquares[i]);
       let colNum = this.getCol(this.activeSquares[i]);
-      this.toggleSquare(rowNum, colNum, false);       
+      if (!this.floorTouched) {
+        this.toggleSquare(rowNum, colNum, false);
+        this.floorTouched = false;       
+      }
     }
     this.activeSquares = [];
   }
@@ -179,12 +201,45 @@ const NUM_COLS = 5;
 const NUM_ROWS = 10;
 let lockKeyPress = false;
 
-const grid = new GridVisual(NUM_ROWS, NUM_COLS);
-const gridBoxes = new GridManager(NUM_ROWS, NUM_COLS);
+const gridVisual = new GridVisual(NUM_ROWS, NUM_COLS);
+const gridManager = new GridManager(NUM_ROWS, NUM_COLS, gridVisual);
 const piece = new Piece(NUM_ROWS, NUM_COLS);
 const shape = piece.shape;
 // we have separated out the shape moving logic from the grid
 // can refactor the shape to be a class
+
+
+
+// create a settimeout for lockkeypress
+
+// tradeoffs: have to recalculate gridboxnum every time
+// refactor: have shape be grid box number, subtract by num columns every time
+const step = () => {
+  // can refactor each bound check to find the first invalid block
+  let movedDown = gridManager.move(piece);
+  let shape = piece.shape;
+  // update positions of the shape on the board
+  if (movedDown) {
+    gridManager.activate(shape);
+  } else {
+    gridManager.floor(shape); 
+  }
+  for (let i = 0; i < 10; i++) {
+    console.log('\n');
+  }
+
+  console.log(gridManager.gridVisual.grid);
+  // update board
+  gridManager.step(); 
+  if (movedDown)
+    setTimeout(step, 500); 
+}
+
+step();
+
+
+
+
 
 const checkKeyPress = (shape, key) => {
   let wall = false;
@@ -232,34 +287,6 @@ const checkKeyPress = (shape, key) => {
   }
 }
 
-// create a settimeout for lockkeypress
-
-// tradeoffs: have to recalculate gridboxnum every time
-// refactor: have shape be grid box number, subtract by num columns every time
-const step = () => {
-  // can refactor each bound check to find the first invalid block
-  let movedDown = piece.moveDown();
-
-  // update positions of the shape on the board
-  if (movedDown) {
-    grid.activate(piece.shape);
-
-  } else {
-    gridBoxes.floor(piece.shape);
-    // grid.floor(shape);  
-  }
-  for (let i = 0; i < 10; i++) {
-    console.log('\n');
-  }
-
-  console.log(grid.grid);
-  // update board
-  grid.step(); 
-  if (movedDown)
-    setTimeout(step, 1000); 
-}
-
-step();
 
 const testKeyPresses = () => {
   let randNum = Math.floor(Math.random() * 2);
@@ -272,5 +299,9 @@ const testKeyPresses = () => {
 // e.g. when to turn on grid
 // start off w/ brute force before optimizing
 
-// LEFTOFF: MAKE SHAPE INTO AN OBJECT SO THAT IT CAN BE SAFELY ACCESSED BY DIFFERENT PARTS OF THE PROGRAM
+// (DONE) LEFTOFF: MAKE SHAPE INTO AN OBJECT SO THAT IT CAN BE SAFELY ACCESSED BY DIFFERENT PARTS OF THE PROGRAM
+// Most of the trip initial up was from col and row maths. 
+
+// LEFTOFF: UPDATE GRIDMANAGER STATE WHEN THE SHAPE HITS THE FLOOR, 
+// LEAVE THE BOXES 'ON' IN GRID INSTEAD OF TOGGLING 'OFF' AFTER STEP
 
