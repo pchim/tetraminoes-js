@@ -1,0 +1,23 @@
+{
+  "name": "tetris-js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "tetris.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pchim/tetris-js.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pchim/tetris-js/issues"
+  },
+  "homepage": "https://github.com/pchim/tetris-js#readme",
+  "devDependencies": {
+    "chai": "^3.5.0"
+  }
+}
