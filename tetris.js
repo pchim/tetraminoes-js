@@ -1,9 +1,11 @@
+// hold state of each grid square on the board
 class GridBox {
   constructor(id, coordinates) {
     this.id = id;
     this.col = coordinates.col;
     this.row = coordinates.row;
     this.on = false;
+    this.displayOn = Math.random() * 2 > 1 ? 'X' : '-';
   }
 
   updateGrid(grid) {
@@ -28,31 +30,63 @@ class GridBox {
   }
 
   step(grid) {
-    this.active = false;
-    this.toggle(false);
-    if (this.floor === true) {
-      this.toggle(true);
-    }
-    this.updateGrid(grid);
+    // this.active = false;
+    // this.toggle(false);
+    // if (this.floor === true) {
+    //   this.toggle(true);
+    // }
   }
 }
 
-// GridManager model updates GridVisual view, piece is a state of gridmanager
-class GridManager {
+class GridBoxes {
   constructor(numRows, numCols) {
-    this.gridBoxes = [];
-    this.gridVisual = new GridVisual(numRows, numCols);
-    this.keyPress = null;
-    // maybe a new class that creates grid boxes
+    this.grid = [];
     // initialize gridboxes
     for (let rowIndex = 0; rowIndex < NUM_ROWS; rowIndex++) {
       let row = [];
       for (let colIndex = 0; colIndex < NUM_COLS; colIndex++) {
         let gridNum = NUM_ROWS*rowIndex + colIndex;
         // could create a coordinates class, but this is good enough for now
-        this.gridBoxes.push(new GridBox(gridNum, {col: colIndex, row: rowIndex}));
+        this.grid.push(new GridBox(gridNum, {col: colIndex, row: rowIndex}));
       }
-    }    
+    } 
+  }
+
+  getBox(index) {
+    return this.grid[index];
+  }
+
+  setState(index, option, state) {
+    try {
+      (this.grid[index])[option] = state;
+      return true;
+    }
+    catch (e) {
+      console.error(e.message);
+      return false;
+    }
+  }
+
+  getState(index, option) {
+    try {
+      return (this.grid[index])[option];
+    }
+    catch (e) {
+      console.error(e.message);
+      return null;
+    }
+  }
+}
+
+// GridManager model updates GridVisual view, piece is a state of gridmanager
+class GridManager {
+  constructor(numRows, numCols) {
+    this.gridBoxes = new GridBoxes(numRows, numCols);
+    this.gridVisual = new GridVisual(numRows, numCols);
+    this.keyPress = null;
+    // maybe a new class that creates grid boxes
+
+   
   }
 
   activate(shape) {
@@ -67,7 +101,7 @@ class GridManager {
   floorPiece(shape) {
     for (let i = 0; i < shape.length; i++) {
       if (shape[i] >= 0) {
-        this.gridBoxes[shape[i]].touchFloor(true);
+        this.gridBoxes.getBox(shape[i]).touchFloor(true);
       }
     }  
   }
@@ -77,21 +111,22 @@ class GridManager {
   }
 
   move(piece) {
+    // the IMPORTANT aspect of this is that we take care of the asynchronous
+    // user key presses by checking for that key press here.
+    // we now synchronously update the position of the piece
+
+    // later the piece will be re-rendered and is guaranteed to be in one piece
+
     // here is where we will check if any key presses have been done in queue
     if (this.keyPress !== null) {
       this.moveHoriz(piece, this.keyPress);
       this.keyPress = null;
     }
-    // if (this.moveHoriz(piece, 'RIGHT')) {
-
-    // } else {
-    //   this.moveHoriz(piece, 'LEFT');
-    // }
-    return piece.moveDown();
+    return piece.moveDown(this.gridBoxes);
   }
 
   moveHoriz(piece, dir) {
-    return piece.moveHoriz(dir);
+    return piece.moveHoriz(dir, this.gridBoxes);
   }
 
   step() {
@@ -104,11 +139,12 @@ class GridManager {
 }
 
 
+// display and control grid view
 class GridVisual {
   constructor(numRows, numCols) {
     this.grid = [];
-    this.displayOff = '0';
-    this.displayOn = '-';
+    this.displayOff = ' ';
+    this.displayOn = Math.random() * 2 > 1 ? 'o' : '-';
     this.numRows = numRows;
     this.numCols = numCols;
     this.activeSquares = [];
@@ -164,15 +200,16 @@ class GridVisual {
   floorPiece(shape) {
     this.activate(shape);
     this.floorTouched = true;
+    this.displayOn = Math.random() * 2 > 1 ? 'o' : '-';
   }
 
   step() {
     for (let i = 0; i < this.activeSquares.length; i++) {
       if (!this.floorTouched) {
         this.toggleSquare(this.activeSquares[i], false);
-        this.floorTouched = false;       
       }
     }
+    this.floorTouched = false;       
     this.activeSquares = [];
   }
 
@@ -181,14 +218,26 @@ class GridVisual {
   }
 }
 
-
-
+// board piece
 class Piece {
 
   constructor(numRows, numCols) {
-    this.shape = [-numCols, -(numCols) + 1, -2 * (numCols) + 1, -2 * (numCols)];
     this.numRows = numRows;
     this.numCols = numCols;
+    this.shapes = this.makeShapes(numRows, numCols);
+    this.shape = this.newShape();
+  }
+
+  makeShapes(numRows, numCols) {
+    const shapes = {
+      square: [-numCols, -(numCols) + 1, -2 * (numCols) + 1, -2 * (numCols)],
+      barI: [-numCols, -2 * numCols, -3 * numCols, -4 * numCols]
+    };
+    return shapes;
+  }
+
+  newShape() {
+    this.shape = Math.random() * 2 > 1 ? this.shapes.barI.concat() : this.shapes.square.concat();
   }
 
   movePiece(moves) {
@@ -197,12 +246,12 @@ class Piece {
     }    
   }
 
-  checkMoveDown() {
+  checkMoveDown(boardState) {
     let touchFloor = false;
     // can refactor each bound check to find the first invalid block
     for (let i = 0; i < this.shape.length; i++) {
       // check if the next location will be a floor (not yet checking collisions)
-      if ( (this.shape[i] + this.numCols) > (this.numRows*this.numCols - 1) ) {
+      if ( (this.shape[i] + this.numCols) > (this.numRows*this.numCols - 1) || this.checkCollision(this.shape[i] + this.numCols, boardState)) {
         touchFloor = true;
         return false;
       }
@@ -210,17 +259,8 @@ class Piece {
     return true;    
   }
 
-  checkMoveHoriz(checkBound) {
-    for (let i = 0; i < this.shape.length; i++) {
-      if (!checkBound(this.shape[i])) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  moveDown() {
-    if (this.checkMoveDown()) {
+  moveDown(boardState) {
+    if (this.checkMoveDown(boardState)) {
       this.movePiece(this.numCols);
       return true; 
     } else {
@@ -229,7 +269,18 @@ class Piece {
     }
   }
 
-  moveHoriz(dir) {
+  // can refactor all of the checks by putting a 'params' parameter
+  checkMoveHoriz(checkBound, boardState, moveSpace) {
+    for (let i = 0; i < this.shape.length; i++) {
+      if (!checkBound(this.shape[i]) || this.checkCollision(this.shape[i] + moveSpace, boardState)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+
+  moveHoriz(dir, boardState) {
     const NUM_COLS = this.numCols;
     // for RIGHT, LEFT key presses
     const checkRight = (shapeNum) => (shapeNum % NUM_COLS + 1) < NUM_COLS;
@@ -251,13 +302,19 @@ class Piece {
     }
 
     // check bounds and move
-    if(this.checkMoveHoriz(checkBound)) {
+    if(this.checkMoveHoriz(checkBound, boardState, moveSpace)) {
       this.movePiece(moveSpace);
       return true;
     } else {
       return false;
     }
+  }
 
+  checkCollision(index, boardState){
+    if (boardState.getState([index], 'on')) {
+      return true;
+    }
+    return false;
   }
 }
 
@@ -279,7 +336,7 @@ let lockKeyPress = false;
 
 const gridManager = new GridManager(NUM_ROWS, NUM_COLS);
 const piece = new Piece(NUM_ROWS, NUM_COLS);
-const shape = piece.shape;
+let shape = piece.newShape();
 // we have separated out the shape moving logic from the grid
 
 const step = () => {
@@ -291,7 +348,8 @@ const step = () => {
   if (movedDown) {
     gridManager.activate(shape);
   } else {
-    gridManager.floor(shape); 
+    gridManager.floor(shape);
+    piece.newShape();
   }
   for (let i = 0; i < 10; i++) {
     console.log('\n');
@@ -300,7 +358,7 @@ const step = () => {
   console.log(gridManager.getGrid());
   // update board
   gridManager.step(); 
-  if (movedDown)
+  //if (movedDown)
     setTimeout(step, 500); 
 }
 
@@ -326,7 +384,7 @@ testKeyPresses();
 
 // (DONE) MOVE BOX LEFT AND RIGHT, SIMULATE RANDOM L/R KEY PRESSES
 
-// LEFTOFF: IMPLEMENT ANOTHER SHAPE AND FLOOR LOGIC
+// (DONE) LEFTOFF: IMPLEMENT ANOTHER SHAPE AND FLOOR LOGIC
 
 
 
